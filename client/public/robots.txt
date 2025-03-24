@@ -1,0 +1,9 @@
+# ImgFixer robots.txt
+User-agent: *
+Allow: /
+
+# Sitemap location
+Sitemap: https://imgfixer.example.com/sitemap.xml
+
+# Crawl delay for all bots
+Crawl-delay: 1 

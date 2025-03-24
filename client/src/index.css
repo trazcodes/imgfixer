@@ -1,0 +1,109 @@
+:root {
+  --bs-primary: #0d6efd;
+  --bs-primary-rgb: 13, 110, 253;
+  --cream-bg: #faf8f1;
+}
+
+/* Base styles */
+body {
+  font-family: 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Improve form control visibility - show borders by default */
+.form-control, .form-select {
+  border: 1px solid #ced4da;
+  background-color: var(--cream-bg);
+}
+
+.form-control:focus, .form-select:focus {
+  border-color: #86b7fe;
+  box-shadow: 0 0 0 0.25rem rgba(var(--bs-primary-rgb), 0.25);
+  background-color: var(--cream-bg);
+}
+
+/* Enhanced button styling */
+.btn {
+  font-weight: 500;
+  letter-spacing: 0.03em;
+}
+
+.btn-primary {
+  background-color: var(--bs-primary);
+  border-color: var(--bs-primary);
+}
+
+.btn-primary:hover {
+  background-color: #0b5ed7;
+  border-color: #0a58ca;
+}
+
+/* Custom range input styling that works with Bootstrap */
+input[type=range].form-range {
+  height: 1.5rem;
+  padding: 0;
+  background-color: transparent;
+}
+
+input[type=range].form-range::-webkit-slider-thumb {
+  background: var(--bs-primary);
+}
+
+input[type=range].form-range::-moz-range-thumb {
+  background: var(--bs-primary);
+  border: none;
+}
+
+/* Card hover effects */
+.card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+/* Animation for spinners that integrates with Bootstrap */
+.spinner-border.spinner {
+  animation: spinner-border 1s linear infinite;
+}
+
+/* Cursor utilities */
+.cursor-pointer {
+  cursor: pointer !important;
+}
+
+/* Smooth transitions */
+.transition {
+  transition: all 0.2s ease-in-out;
+}
+
+/* Animation for spinners */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+/* Media queries for grid layouts */
+@media (max-width: 768px) {
+  .editor-content {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Responsive button groups */
+@media (max-width: 576px) {
+  .button-container {
+    flex-direction: column !important;
+  }
+  
+  .button-group {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+} 
