@@ -1,1 +1,75 @@
+# Dependencies
 node_modules
+*/node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+client/.env
+client/.env.local
+client/.env.development.local
+client/.env.test.local
+client/.env.production.local
+server/.env
+server/.env.local
+server/.env.development.local
+server/.env.test.local
+server/.env.production.local
+
+# Build outputs
+/client/dist
+/client/build
+/dist
+/build
+/.vercel
+
+# Logs
+logs
+*.log
+
+# Testing
+/coverage
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Editor directories and files
+.idea
+.vscode/*
+!.vscode/extensions.json
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# MongoDB/GridFS data files
+/data
+
+# Temporary data and uploads
+/tmp
+/temp
+/uploads
+
+# Cache files
+.cache/
+.npm
+
+# Misc
+.git
+
+# Tesseract data files
+*.traineddata

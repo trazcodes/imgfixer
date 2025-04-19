@@ -10,8 +10,11 @@ import Footer from './components/Footer';
 import Features from './pages/Features';
 import HowItWorks from './pages/HowItWorks';
 
-// Configure axios with a timeout
+
+// Configure axios with a timeout and base URL from environment variables
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 axios.defaults.timeout = 30000; // 30 seconds timeout for image processing
+// We're using the API_BASE_URL for API requests
 
 const ImageProcessor = () => {
   const [imageData, setImageData] = useState(null);
@@ -135,24 +138,20 @@ const ImageProcessor = () => {
   );
 };
 
-const App = () => {
+function App() {
   return (
     <Router>
-      <div className="d-flex flex-column min-vh-100 bg-light">
+      <div className="d-flex flex-column min-vh-100">
         <Header />
-        
-        <main className="flex-grow-1 d-flex flex-column align-items-center py-4 px-3">
-          <Routes>
-            <Route path="/" element={<ImageProcessor />} />
-            <Route path="/features" element={<Features />} />
-            <Route path="/how-it-works" element={<HowItWorks />} />
-          </Routes>
-        </main>
-        
+        <Routes>
+          <Route path="/" element={<ImageProcessor />} />
+          <Route path="/features" element={<Features />} />
+          <Route path="/how-it-works" element={<HowItWorks />} />
+        </Routes>
         <Footer />
       </div>
     </Router>
   );
-};
+}
 
 export default App; 

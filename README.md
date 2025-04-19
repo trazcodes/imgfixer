@@ -48,12 +48,21 @@ A MERN stack application for image processing with OCR capabilities, resizing, a
    ```
 
 2. Set up environment variables:
-   - Create a `.env` file in the root directory with the following content:
+   - Create separate environment files for client and server:
+   
+   For server (`server/.env`):
    ```
    NODE_ENV=development
    PORT=5000
    MONGO_URI=mongodb://localhost:27017/imgfixer
    ```
+   
+   For client (`client/.env`):
+   ```
+   VITE_API_BASE_URL=http://localhost:5000/api
+   ```
+   
+   - See `ENV_SETUP.md` for more details about environment configuration
    - Modify the MONGO_URI if you're using a remote MongoDB instance
 
 3. Install dependencies:
@@ -118,4 +127,4 @@ imgfixer/
 
 ## License
 
-ISC 
+ISC

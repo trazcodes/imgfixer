@@ -1,11 +1,11 @@
 // Load environment variables
 const dotenv = require('dotenv');
-dotenv.config();
+const path = require('path');
+dotenv.config({ path: path.resolve(__dirname, '.env') });
 
 const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
-const path = require('path');
 const fs = require('fs-extra');
 const sharp = require('sharp');
 const PDFDocument = require('pdfkit');

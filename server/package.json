@@ -1,0 +1,40 @@
+{
+  "name": "imgfixer-server",
+  "version": "1.0.0",
+  "description": "Server for ImgFixer image processing application",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "keywords": [
+    "image",
+    "processing",
+    "OCR",
+    "resize",
+    "convert"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "docx": "^8.5.0",
+    "dotenv": "^16.4.7",
+    "express": "^4.18.2",
+    "fs-extra": "^11.2.0",
+    "gridfs-stream": "^1.1.1",
+    "jimp": "^0.22.10",
+    "mongodb": "^6.14.2",
+    "mongoose": "^8.12.1",
+    "multer": "^1.4.5-lts.1",
+    "pdfkit": "^0.14.0",
+    "sharp": "^0.33.2",
+    "tesseract.js": "^5.0.4"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.3"
+  }
+} 
