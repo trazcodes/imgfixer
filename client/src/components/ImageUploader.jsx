@@ -4,7 +4,7 @@ import { FaCloudUploadAlt, FaSpinner, FaExclamationTriangle } from 'react-icons/
 import axios from 'axios';
 import { toast } from 'react-toastify';
 
-const ImageUploader = ({ onImageUpload, sessionId }) => {
+const ImageUploader = ({ onImageUpload, sessionId, apiBaseUrl }) => {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState(null);
   const uploadFile = useRef(null);
@@ -43,7 +43,7 @@ const ImageUploader = ({ onImageUpload, sessionId }) => {
     formData.append('sessionId', sessionId);
     
     try {
-      const response = await axios.post('/api/upload', formData, {
+      const response = await axios.post(`${apiBaseUrl}/upload`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }

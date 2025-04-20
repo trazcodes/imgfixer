@@ -30,9 +30,23 @@ const PORT = process.env.PORT || 5000;
 connectDB();
 
 // Middleware
-// Configure CORS to allow requests from frontend
+// Configure CORS to allow requests from multiple origins
 const corsOptions = {
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: function(origin, callback) {
+    const allowedOrigins = [
+      'http://localhost:3000',
+      'https://imgfixer-client.vercel.app',
+      'https://imgfixer-client.vercel.app/'
+    ];
+    
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      console.log('CORS blocked request from:', origin);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   optionsSuccessStatus: 200
 };
@@ -284,8 +298,12 @@ app.post('/api/resize', async (req, res) => {
       // Target size-based resize using binary search algorithm
       const targetSizeBytes = parseInt(targetSize) * 1024;
       
-      // No range anymore - we'll ensure size is <= target
-      console.log(`Target size: ${targetSizeBytes} bytes (${targetSize}KB), ensuring output is <= target`);
+      // Define acceptable range (±20KB from target)
+      const rangeBuffer = 20 * 1024; // 20KB in bytes
+      const minAcceptableSize = Math.max(1024, targetSizeBytes - rangeBuffer); // At least 1KB
+      const maxAcceptableSize = targetSizeBytes + rangeBuffer;
+      
+      console.log(`Target size: ${targetSizeBytes} bytes (${targetSize}KB), acceptable range: ${minAcceptableSize}-${maxAcceptableSize} bytes (${Math.round(minAcceptableSize/1024)}-${Math.round(maxAcceptableSize/1024)}KB)`);
       
       // Very aggressive approach for extremely small sizes
       if (targetSizeBytes < 5 * 1024) { // Less than 5KB
@@ -323,14 +341,24 @@ app.post('/api/resize', async (req, res) => {
           const testSize = testBuffer.length;
           console.log(`Scale ${scale}: ${newWidth}x${newHeight}, size: ${testSize} bytes`);
           
-          // Keep track of the best size under target
-          if (testSize <= targetSizeBytes && (bestBuffer === null || testSize > bestSize)) {
-            // This is the largest size under the target (the best result)
+          // Check if we're within the acceptable range - if so, we can stop early
+          if (testSize >= minAcceptableSize && testSize <= maxAcceptableSize) {
+            console.log(`Size ${testSize} bytes (${Math.round(testSize/1024)}KB) is within acceptable range, stopping search`);
+            bestBuffer = testBuffer;
+            bestSize = testSize;
+            finalWidth = newWidth;
+            finalHeight = newHeight;
+            break;
+          }
+          
+          // Otherwise, keep track of the best size under max acceptable size
+          if (testSize <= maxAcceptableSize && (bestBuffer === null || testSize > bestSize)) {
+            // This is the largest size under the max acceptable (the best result)
             bestSize = testSize;
             bestBuffer = testBuffer;
             finalWidth = newWidth;
             finalHeight = newHeight;
-            console.log(`New best size: ${testSize} bytes (${Math.round(testSize/1024)}KB), within target`);
+            console.log(`New best size: ${testSize} bytes (${Math.round(testSize/1024)}KB), within acceptable range`);
           }
           
           currentBuffer = testBuffer;
@@ -343,32 +371,32 @@ app.post('/api/resize', async (req, res) => {
           }
         }
         
-        // Use the best buffer that's under the target
+        // Use the best buffer that's within or under the acceptable range
         if (bestBuffer !== null) {
           processedBuffer = bestBuffer;
           console.log(`Using best size found: ${bestSize} bytes (${Math.round(bestSize/1024)}KB)`);
         } else {
-          // If no buffer is under the target, use the smallest we found
+          // If no buffer is under the acceptable range, use the smallest we found
           processedBuffer = currentBuffer;
           console.log(`Could not achieve target size. Using smallest possible: ${processedBuffer.length} bytes`);
         }
       } else {
         // Standard approach for normal size targets
-        // Use binary search to find the highest quality that's under the target size
+        // Use binary search to find the highest quality that's within the acceptable range
         let minQuality = 1;
         let maxQuality = 100;
         let bestQuality = 80; // Default quality
         let bestSize = Infinity;
         let bestBuffer = null;
         let attempts = 0;
-        const MAX_ATTEMPTS = 15; 
+        const MAX_ATTEMPTS = 10; // Reduced from 15 since we have a range
         
         // For smaller sizes, start with a lower quality estimate
         if (targetSizeBytes < 50 * 1024) { // Less than 50KB
-          bestQuality = 30;
+          bestQuality = 40; // Increased from 30 since we have a range
         }
         
-        console.log(`Processing with target maximum size: ${targetSizeBytes} bytes`);
+        console.log(`Processing with target size range: ${minAcceptableSize}-${maxAcceptableSize} bytes`);
         
         while (minQuality <= maxQuality && attempts < MAX_ATTEMPTS) {
           attempts++;
@@ -393,10 +421,19 @@ app.post('/api/resize', async (req, res) => {
             }
             
             const currentSize = testBuffer.length;
-            console.log(`Quality: ${currentQuality}, Size: ${currentSize} bytes, Target max: ${targetSizeBytes} bytes`);
+            console.log(`Quality: ${currentQuality}, Size: ${currentSize} bytes, Target range: ${minAcceptableSize}-${maxAcceptableSize} bytes`);
             
-            if (currentSize <= targetSizeBytes) {
-              // This quality produces a size under the target
+            // If we're within the acceptable range, we can stop early
+            if (currentSize >= minAcceptableSize && currentSize <= maxAcceptableSize) {
+              console.log(`Size ${currentSize} bytes (${Math.round(currentSize/1024)}KB) with quality ${currentQuality} is within acceptable range, stopping search`);
+              bestQuality = currentQuality;
+              bestSize = currentSize;
+              bestBuffer = testBuffer;
+              break;
+            }
+            
+            if (currentSize <= maxAcceptableSize) {
+              // This quality produces a size under or within the acceptable range
               // Check if this is better than our previous best
               if (currentSize > bestSize || bestBuffer === null) {
                 bestQuality = currentQuality;
@@ -405,18 +442,18 @@ app.post('/api/resize', async (req, res) => {
                 console.log(`New best quality: ${currentQuality}, size: ${currentSize} bytes (${Math.round(currentSize/1024)}KB)`);
               }
               
-              // Try to find a higher quality that's still under the target
+              // Try to find a higher quality that's still under the max acceptable size
               minQuality = currentQuality + 1;
             } else {
-              // This quality produces a size over the target
+              // This quality produces a size over the max acceptable
               // Try a lower quality
               maxQuality = currentQuality - 1;
             }
             
             // If we're running out of attempts, make larger quality jumps
-            if (attempts > 12 && bestBuffer === null) {
+            if (attempts > 7 && bestBuffer === null) {
               console.log(`Running out of attempts, making larger quality jumps`);
-              maxQuality = Math.max(1, currentQuality - 20);
+              maxQuality = Math.max(1, currentQuality - 15);
             }
           } catch (err) {
             console.error('Error processing image at quality', currentQuality, err);
@@ -425,11 +462,11 @@ app.post('/api/resize', async (req, res) => {
           }
         }
         
-        // If we found a quality that produces a size under the target, use it
+        // If we found a quality that produces a size within the acceptable range, use it
         if (bestBuffer !== null) {
           processedBuffer = bestBuffer;
           finalQuality = bestQuality;
-          console.log(`Final result: Quality ${finalQuality}, Size: ${bestSize} bytes (${Math.round(bestSize/1024)}KB), under target of ${targetSizeBytes} bytes`);
+          console.log(`Final result: Quality ${finalQuality}, Size: ${bestSize} bytes (${Math.round(bestSize/1024)}KB), within acceptable range of ${minAcceptableSize}-${maxAcceptableSize} bytes`);
         } else {
           // If we couldn't achieve target size with quality reduction alone,
           // try dimension reduction
@@ -446,7 +483,7 @@ app.post('/api/resize', async (req, res) => {
             console.log(`Trying scaled dimensions: ${newWidth}x${newHeight}`);
             
             // Try with different quality levels
-            for (const quality of [30, 10, 1]) {
+            for (const quality of [50, 30, 10, 1]) {
               const sharpInstance = sharp(fileBuffer)
                 .resize(newWidth, newHeight);
               
@@ -465,39 +502,50 @@ app.post('/api/resize', async (req, res) => {
               const testSize = testBuffer.length;
               console.log(`Scale ${scale} with quality ${quality}: ${newWidth}x${newHeight}, size: ${testSize} bytes`);
               
-              // Check if this is under target and better than our previous best
-              if (testSize <= targetSizeBytes && (testSize > bestSize || bestBuffer === null)) {
+              // Check if this is within the acceptable range - if so, we can stop
+              if (testSize >= minAcceptableSize && testSize <= maxAcceptableSize) {
+                console.log(`Size ${testSize} bytes (${Math.round(testSize/1024)}KB) is within acceptable range, stopping search`);
                 bestSize = testSize;
                 bestBuffer = testBuffer;
                 finalWidth = newWidth;
                 finalHeight = newHeight;
                 finalQuality = quality;
-                console.log(`New best size: ${testSize} bytes (${Math.round(testSize/1024)}KB), within target`);
+                break;
+              }
+              
+              // Otherwise, check if this is under max acceptable and better than our previous best
+              if (testSize <= maxAcceptableSize && (testSize > bestSize || bestBuffer === null)) {
+                bestSize = testSize;
+                bestBuffer = testBuffer;
+                finalWidth = newWidth;
+                finalHeight = newHeight;
+                finalQuality = quality;
+                console.log(`New best size: ${testSize} bytes (${Math.round(testSize/1024)}KB), within acceptable max`);
                 
-                // If we're at quality 30 and under target, we can stop - good quality achieved
-                if (quality === 30) {
+                // If we're at quality 50 and under target, we can stop - good quality achieved
+                if (quality === 50) {
                   break;
                 }
               }
               
               // If we're already under target with the lowest quality, try the next scale
-              if (testSize <= targetSizeBytes && quality === 1) {
+              if (testSize <= maxAcceptableSize && quality === 1) {
                 break;
               }
             }
             
-            // If we found something under the target, stop
-            if (bestBuffer !== null) {
+            // If we found something within the acceptable range, stop
+            if (bestBuffer !== null && bestSize >= minAcceptableSize && bestSize <= maxAcceptableSize) {
               break;
             }
           }
           
           if (bestBuffer !== null) {
             processedBuffer = bestBuffer;
-            console.log(`Dimension scaling successful: Quality ${finalQuality}, Size: ${bestSize} bytes (${Math.round(bestSize/1024)}KB), under target`);
+            console.log(`Dimension scaling successful: Quality ${finalQuality}, Size: ${bestSize} bytes (${Math.round(bestSize/1024)}KB), acceptable range: ${minAcceptableSize}-${maxAcceptableSize} bytes`);
           } else {
-            // If we still can't get under the target, use the smallest possible
-            console.log(`Could not achieve target size. Creating minimal image.`);
+            // If we still can't get within the acceptable range, use the smallest possible
+            console.log(`Could not achieve target size range. Creating minimal image.`);
             
             // Create a tiny image with minimal quality as a last resort
             const minimumWidth = Math.max(10, Math.round(originalWidth * 0.05));
@@ -549,6 +597,13 @@ app.post('/api/resize', async (req, res) => {
       lastActive: new Date()
     });
     
+    // Calculate range values for the response
+    const rangeBuffer = 20 * 1024; // 20KB in bytes
+    const minTargetSize = Math.max(1024, targetSizeBytes - rangeBuffer); // At least 1KB
+    const maxTargetSize = targetSizeBytes + rangeBuffer;
+    const withinTargetRange = isTargetSizeMode ? 
+      (processedBuffer.length >= minTargetSize && processedBuffer.length <= maxTargetSize) : null;
+    
     res.status(200).json({
       message: 'Image processed successfully',
       imageId: processedImageDoc._id,
@@ -562,9 +617,9 @@ app.post('/api/resize', async (req, res) => {
       targetSize: isTargetSizeMode ? parseInt(targetSize) * 1024 : null,
       actualSize: processedBuffer.length,
       actualSizeKB: Math.round(processedBuffer.length / 1024),
-      rangeTargeted: isTargetSizeMode ? `${targetSize}KB` : null,
-      withinTargetRange: isTargetSizeMode ? 
-        (processedBuffer.length <= parseInt(targetSize) * 1024) : null,
+      rangeTargeted: isTargetSizeMode ? 
+        `${Math.round(minTargetSize/1024)}-${Math.round(maxTargetSize/1024)}KB` : null,
+      withinTargetRange: withinTargetRange,
       dimensionReduction: finalWidth ? `${Math.round((finalWidth / imageDoc.width) * 100)}%` : null
     });
   } catch (error) {

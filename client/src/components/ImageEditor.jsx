@@ -481,7 +481,7 @@ const SizeInfo = styled.div`
   margin-top: 4px;
 `;
 
-const ImageEditor = ({ imageData, onComplete, onReset, onBack, setOcrText, sessionId }) => {
+const ImageEditor = ({ imageData, onComplete, onReset, onBack, setOcrText, sessionId, apiBaseUrl }) => {
   const [previewUrl, setPreviewUrl] = useState('');
   const [width, setWidth] = useState('');
   const [height, setHeight] = useState('');
@@ -489,7 +489,7 @@ const ImageEditor = ({ imageData, onComplete, onReset, onBack, setOcrText, sessi
   const [isProcessing, setIsProcessing] = useState(false);
   const [isOcrProcessing, setIsOcrProcessing] = useState(false);
   const [ocrResult, setOcrResult] = useState('');
-  const [selectedOperation, setSelectedOperation] = useState(null);
+  const [selectedOperation, setSelectedOperation] = useState('resize');
   const [quality, setQuality] = useState(80);
   const [targetSize, setTargetSize] = useState(100); // Default 100KB
   const [estimatedSize, setEstimatedSize] = useState(null);
@@ -508,10 +508,10 @@ const ImageEditor = ({ imageData, onComplete, onReset, onBack, setOcrText, sessi
       const preloadLink = document.createElement('link');
       preloadLink.rel = 'preload';
       preloadLink.as = 'image';
-      preloadLink.href = `/api/download/${imageData.imageId}`;
+      preloadLink.href = `${apiBaseUrl}/download/${imageData.imageId}`;
       document.head.appendChild(preloadLink);
       
-      setPreviewUrl(`/api/download/${imageData.imageId}`);
+      setPreviewUrl(`${apiBaseUrl}/download/${imageData.imageId}`);
       
       if (imageData.size) {
         setOriginalSize(parseInt(imageData.size));
@@ -527,7 +527,7 @@ const ImageEditor = ({ imageData, onComplete, onReset, onBack, setOcrText, sessi
       
       if (!imageData.size) {
         // Fetch file info
-        fetch(`/api/file-info/${imageData.imageId}`)
+        fetch(`${apiBaseUrl}/file-info/${imageData.imageId}`)
           .then(response => response.json())
           .then(data => {
             if (data.size) {
@@ -544,7 +544,7 @@ const ImageEditor = ({ imageData, onComplete, onReset, onBack, setOcrText, sessi
         }
       };
     }
-  }, [imageData, previewUrl]);
+  }, [imageData, previewUrl, apiBaseUrl]);
   
   // Get precise size estimation from server when parameters change
   useEffect(() => {
@@ -562,7 +562,7 @@ const ImageEditor = ({ imageData, onComplete, onReset, onBack, setOcrText, sessi
         setIsEstimating(true);
         
         try {
-          const response = await axios.post('/api/estimate-size', {
+          const response = await axios.post(`${apiBaseUrl}/estimate-size`, {
             imageId: imageData.imageId,
             width: width ? parseInt(width) : null,
             height: height ? parseInt(height) : null,
@@ -588,7 +588,7 @@ const ImageEditor = ({ imageData, onComplete, onReset, onBack, setOcrText, sessi
         clearTimeout(debouncedFetchTimeout.current);
       }
     };
-  }, [imageData.imageId, width, height, quality, selectedOperation, targetFormat, isProcessing]);
+  }, [imageData.imageId, width, height, quality, selectedOperation, targetFormat, isProcessing, apiBaseUrl]);
   
   // Client-side size estimation (as a fallback)
   useEffect(() => {
@@ -690,7 +690,7 @@ const ImageEditor = ({ imageData, onComplete, onReset, onBack, setOcrText, sessi
     setError(null);
     
     try {
-      const response = await fetch('/api/resize', {
+      const response = await fetch(`${apiBaseUrl}/resize`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -736,7 +736,7 @@ const ImageEditor = ({ imageData, onComplete, onReset, onBack, setOcrText, sessi
     try {
       setIsProcessing(true);
       
-      const response = await axios.post('/api/convert', {
+      const response = await axios.post(`${apiBaseUrl}/convert`, {
         imageId: imageData.imageId,
         format: targetFormat,
         sessionId
@@ -763,7 +763,7 @@ const ImageEditor = ({ imageData, onComplete, onReset, onBack, setOcrText, sessi
     try {
       setIsOcrProcessing(true);
       
-      const response = await axios.post('/api/ocr', {
+      const response = await axios.post(`${apiBaseUrl}/ocr`, {
         imageId: imageData.imageId,
         sessionId
       });
@@ -1025,7 +1025,7 @@ const ImageEditor = ({ imageData, onComplete, onReset, onBack, setOcrText, sessi
                     setProcessingResult(null);
                     setError(null);
                     
-                    fetch('/api/resize', {
+                    fetch(`${apiBaseUrl}/resize`, {
                       method: 'POST',
                       headers: {
                         'Content-Type': 'application/json',

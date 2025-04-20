@@ -14,7 +14,7 @@ import HowItWorks from './pages/HowItWorks';
 // Configure axios with a timeout and base URL from environment variables
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 axios.defaults.timeout = 30000; // 30 seconds timeout for image processing
-// We're using the API_BASE_URL for API requests
+axios.defaults.baseURL = API_BASE_URL.endsWith('/api') ? API_BASE_URL.slice(0, -4) : ''; // Remove '/api' from the end if present
 
 const ImageProcessor = () => {
   const [imageData, setImageData] = useState(null);
@@ -40,7 +40,8 @@ const ImageProcessor = () => {
   useEffect(() => {
     const createSession = async () => {
       try {
-        const response = await axios.post('/api/session/create');
+        // Use API_BASE_URL to construct the full URL
+        const response = await axios.post(`${API_BASE_URL}/session/create`);
         const newSessionId = response.data.sessionId;
         setSessionId(newSessionId);
         sessionStorage.setItem('imgfixer_session_id', newSessionId);
@@ -64,7 +65,8 @@ const ImageProcessor = () => {
     if (!sessionId) return;
     
     try {
-      await axios.post('/api/session/ping', { sessionId });
+      // Use API_BASE_URL to construct the full URL
+      await axios.post(`${API_BASE_URL}/session/ping`, { sessionId });
     } catch (error) {
       handleApiError(error, 'Failed to ping session');
     }
@@ -86,7 +88,8 @@ const ImageProcessor = () => {
   };
 
   const handleProcessingComplete = (result) => {
-    setProcessedImageUrl(`/api/download/${result.imageId}`);
+    // Use API_BASE_URL to construct the full URL
+    setProcessedImageUrl(`${API_BASE_URL}/download/${result.imageId}`);
     setProcessedImageData(result);
     setProcessingStep('preview');
   };
@@ -109,30 +112,52 @@ const ImageProcessor = () => {
   };
 
   return (
-    <div className="container-lg">
+    <div className="container-fluid p-0">
+      {/* Step 1: Upload */}
       {processingStep === 'upload' && (
-        <ImageUploader onImageUpload={handleImageUpload} sessionId={sessionId} />
+        <div className="container my-5">
+          <div className="row justify-content-center">
+            <div className="col-md-8 col-lg-6">
+              <div className="card shadow-sm border-0">
+                <div className="card-body p-4">
+                  <h2 className="text-center mb-4">Upload an Image</h2>
+                  <ImageUploader 
+                    onImageUpload={handleImageUpload} 
+                    sessionId={sessionId}
+                    apiBaseUrl={API_BASE_URL}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
-      
+
+      {/* Step 2: Edit */}
       {processingStep === 'edit' && imageData && (
-        <ImageEditor 
-          imageData={imageData} 
-          onComplete={handleProcessingComplete}
-          onReset={handleReset}
-          onBack={handleBack}
-          setOcrText={setOcrText}
-          sessionId={sessionId}
-        />
+        <div className="container-fluid p-0">
+          <ImageEditor
+            imageData={imageData}
+            onBack={handleBack}
+            onSave={handleProcessingComplete}
+            sessionId={sessionId}
+            apiBaseUrl={API_BASE_URL}
+          />
+        </div>
       )}
-      
-      {processingStep === 'preview' && (
-        <ImagePreview 
-          imageUrl={processedImageUrl}
-          imageData={processedImageData}
-          ocrText={ocrText}
-          onReset={handleReset}
-          onBack={handleBack}
-        />
+
+      {/* Step 3: Preview */}
+      {processingStep === 'preview' && processedImageData && (
+        <div className="container-fluid p-0">
+          <ImagePreview
+            processedImage={processedImageUrl}
+            originalImageData={imageData}
+            onBack={handleBack}
+            onReset={handleReset}
+            sessionId={sessionId}
+            apiBaseUrl={API_BASE_URL}
+          />
+        </div>
       )}
     </div>
   );
