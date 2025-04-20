@@ -274,6 +274,7 @@ app.post('/api/resize', async (req, res) => {
     let finalWidth = null;
     let finalHeight = null;
     let metadata = await sharp(fileBuffer).metadata();
+    let targetSizeBytes = targetSize ? parseInt(targetSize) * 1024 : null; // Declare targetSizeBytes here
     
     if (isQualityMode) {
       // Quality-based resize (simple quality adjustment)
@@ -296,7 +297,7 @@ app.post('/api/resize', async (req, res) => {
       }
     } else {
       // Target size-based resize using binary search algorithm
-      const targetSizeBytes = parseInt(targetSize) * 1024;
+      targetSizeBytes = parseInt(targetSize) * 1024; // Update the existing variable instead of redeclaring
       
       // Define acceptable range (±20KB from target)
       const rangeBuffer = 20 * 1024; // 20KB in bytes

@@ -12,9 +12,16 @@ import HowItWorks from './pages/HowItWorks';
 
 
 // Configure axios with a timeout and base URL from environment variables
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 axios.defaults.timeout = 30000; // 30 seconds timeout for image processing
-axios.defaults.baseURL = API_BASE_URL.endsWith('/api') ? API_BASE_URL.slice(0, -4) : ''; // Remove '/api' from the end if present
+
+// Ensure API_BASE_URL ends with /api
+const apiBaseWithPrefix = API_BASE_URL.endsWith('/api') 
+  ? API_BASE_URL 
+  : `${API_BASE_URL}/api`;
+
+// Configure axios defaults
+axios.defaults.baseURL = API_BASE_URL;
 
 const ImageProcessor = () => {
   const [imageData, setImageData] = useState(null);
@@ -40,8 +47,8 @@ const ImageProcessor = () => {
   useEffect(() => {
     const createSession = async () => {
       try {
-        // Use API_BASE_URL to construct the full URL
-        const response = await axios.post(`${API_BASE_URL}/session/create`);
+        // Use apiBaseWithPrefix to ensure /api is included
+        const response = await axios.post(`${apiBaseWithPrefix}/session/create`);
         const newSessionId = response.data.sessionId;
         setSessionId(newSessionId);
         sessionStorage.setItem('imgfixer_session_id', newSessionId);
@@ -65,8 +72,8 @@ const ImageProcessor = () => {
     if (!sessionId) return;
     
     try {
-      // Use API_BASE_URL to construct the full URL
-      await axios.post(`${API_BASE_URL}/session/ping`, { sessionId });
+      // Use apiBaseWithPrefix to ensure /api is included
+      await axios.post(`${apiBaseWithPrefix}/session/ping`, { sessionId });
     } catch (error) {
       handleApiError(error, 'Failed to ping session');
     }
@@ -88,8 +95,8 @@ const ImageProcessor = () => {
   };
 
   const handleProcessingComplete = (result) => {
-    // Use API_BASE_URL to construct the full URL
-    setProcessedImageUrl(`${API_BASE_URL}/download/${result.imageId}`);
+    // Use apiBaseWithPrefix to ensure /api is included
+    setProcessedImageUrl(`${apiBaseWithPrefix}/download/${result.imageId}`);
     setProcessedImageData(result);
     setProcessingStep('preview');
   };
@@ -124,7 +131,7 @@ const ImageProcessor = () => {
                   <ImageUploader 
                     onImageUpload={handleImageUpload} 
                     sessionId={sessionId}
-                    apiBaseUrl={API_BASE_URL}
+                    apiBaseUrl={apiBaseWithPrefix}
                   />
                 </div>
               </div>
@@ -141,7 +148,7 @@ const ImageProcessor = () => {
             onBack={handleBack}
             onSave={handleProcessingComplete}
             sessionId={sessionId}
-            apiBaseUrl={API_BASE_URL}
+            apiBaseUrl={apiBaseWithPrefix}
           />
         </div>
       )}
@@ -155,7 +162,7 @@ const ImageProcessor = () => {
             onBack={handleBack}
             onReset={handleReset}
             sessionId={sessionId}
-            apiBaseUrl={API_BASE_URL}
+            apiBaseUrl={apiBaseWithPrefix}
           />
         </div>
       )}
