@@ -71,21 +71,7 @@ const HowItWorks = () => {
         ))}
       </div>
 
-      <div className="row mt-5">
-        <div className="col-lg-8 mx-auto">
-          <div className="card border-0 shadow-sm">
-            <div className="card-body p-4">
-              <h2 className="h4 fw-bold mb-3">Technical Details</h2>
-              <p className="text-secondary mb-0">
-                ImgFixer uses advanced image processing libraries and algorithms to ensure the best results. 
-                Our server processes images using Sharp for resizing and format conversion, Tesseract.js for OCR, 
-                and MongoDB GridFS for secure file storage. All processing is done server-side for optimal performance 
-                and security. Files are automatically cleaned up after 1 hour to maintain server efficiency.
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
+    
 
       <div className="text-center mt-5">
         <h2 className="h3 fw-bold mb-4">Ready to Try It Out?</h2>

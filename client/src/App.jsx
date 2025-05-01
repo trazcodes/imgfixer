@@ -146,9 +146,10 @@ const ImageProcessor = () => {
           <ImageEditor
             imageData={imageData}
             onBack={handleBack}
-            onSave={handleProcessingComplete}
+            onComplete={handleProcessingComplete}
             sessionId={sessionId}
             apiBaseUrl={apiBaseWithPrefix}
+            setOcrText={setOcrText}
           />
         </div>
       )}
@@ -159,6 +160,7 @@ const ImageProcessor = () => {
           <ImagePreview
             processedImage={processedImageUrl}
             originalImageData={imageData}
+            processedImageData={processedImageData}
             onBack={handleBack}
             onReset={handleReset}
             sessionId={sessionId}

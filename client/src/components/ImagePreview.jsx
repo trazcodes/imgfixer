@@ -215,13 +215,13 @@ const OCRContent = styled.div`
   overflow-y: auto;
 `;
 
-const ImagePreview = ({ imageUrl, ocrText, onReset, onBack, imageData }) => {
-  // Extract filename from the imageUrl which now contains the MongoDB ID
-  const imageId = imageUrl.split('/').pop();
+const ImagePreview = ({ processedImage, ocrText, onReset, onBack, originalImageData, processedImageData }) => {
+  // Extract filename from the processedImage which now contains the MongoDB ID
+  const imageId = processedImage.split('/').pop();
   
   const handleDownload = () => {
     // Use the download endpoint with MongoDB ID
-    window.location.href = imageUrl;
+    window.location.href = processedImage;
   };
   
   // Get the format type from content-type header (this might need adaptation)
@@ -232,30 +232,51 @@ const ImagePreview = ({ imageUrl, ocrText, onReset, onBack, imageData }) => {
   React.useEffect(() => {
     // Make a HEAD request to get content-type
     // This is optional and could be replaced by passing format info from parent component
-    fetch(imageUrl, { method: 'HEAD' })
+    fetch(processedImage, { method: 'HEAD' })
       .then(response => {
         const contentType = response.headers.get('content-type');
         if (contentType.includes('pdf')) {
           setFormatType('PDF');
         } else if (contentType.includes('docx') || contentType.includes('document')) {
           setFormatType('DOCX');
+        } else if (contentType.includes('png')) {
+          setFormatType('PNG');
+        } else if (contentType.includes('jpeg') || contentType.includes('jpg')) {
+          setFormatType('JPEG');
+        } else if (contentType.includes('webp')) {
+          setFormatType('WEBP');
+        } else if (contentType.includes('gif')) {
+          setFormatType('GIF');
         } else {
-          // It's an image type
-          setFormatType(contentType.split('/')[1].toUpperCase());
+          // Default to JPEG if unable to determine
+          setFormatType('JPEG');
         }
-      })
-      .catch(() => {
-        // Default to JPEG if unable to determine
-        setFormatType('JPEG');
       });
-  }, [imageUrl]);
+  }, [processedImage]);
 
-  // Format file size for display
+  // Format file size for display - improved precision
   const formatFileSize = (bytes) => {
     if (!bytes) return 'Unknown';
-    if (bytes < 1024) return `${bytes} bytes`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    
+    // For sizes under 1KB
+    if (bytes < 1024) {
+      return `${bytes} bytes`;
+    }
+    
+    // For sizes between 1KB and 1MB (show with 2 decimal precision)
+    const kb = bytes / 1024;
+    if (kb < 1024) {
+      return `${kb.toFixed(2)} KB`;
+    }
+    
+    // For sizes over 1MB (show with 2 decimal precision)
+    const mb = kb / 1024;
+    return `${mb.toFixed(2)} MB`;
+  };
+
+  const calculateReduction = (originalSize, processedSize) => {
+    const reduction = (1 - (processedSize / originalSize)) * 100;
+    return `${reduction.toFixed(2)}%`;
   };
   
   return (
@@ -285,7 +306,7 @@ const ImagePreview = ({ imageUrl, ocrText, onReset, onBack, imageData }) => {
         
         <ImageContainer>
           {formatType !== 'PDF' && formatType !== 'DOCX' ? (
-            <img src={imageUrl} alt="Processed" />
+            <img src={processedImage} alt="Processed" />
           ) : (
             <div style={{ textAlign: 'center' }}>
               <div 
@@ -316,19 +337,60 @@ const ImagePreview = ({ imageUrl, ocrText, onReset, onBack, imageData }) => {
           <div className="card-body py-3">
             <h3 className="card-title h6 text-center mb-3">File Information</h3>
             <div className="row text-center g-3">
-              <div className="col-md-4 col-sm-12">
-                <strong>Size:</strong> {formatFileSize(imageData?.size)}
+              {/* File sizes row */}
+              <div className="col-md-6 col-sm-12">
+                <div className="card h-100 border-light">
+                  <div className="card-body py-3">
+                    <h4 className="h6 mb-3">File Size</h4>
+                    <div className="d-flex justify-content-between">
+                      <div>
+                        <small className="text-muted d-block">Original:</small>
+                        <span className="fw-medium">{formatFileSize(originalImageData?.size)}</span>
+                      </div>
+                      <div>
+                        <small className="text-muted d-block">Processed:</small>
+                        <span className="fw-medium">{formatFileSize(processedImageData?.size)}</span>
+                      </div>
+                    </div>
+                    {processedImageData?.size && originalImageData?.size && (
+                      <div className="mt-2 small">
+                        <div className="text-muted">
+                          Size reduction: {calculateReduction(originalImageData.size, processedImageData.size)}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
-              {imageData?.width && imageData?.height && (
-                <div className="col-md-4 col-sm-12">
-                  <strong>Dimensions:</strong> {imageData.width} × {imageData.height}
+              
+              {/* Dimensions and other info */}
+              <div className="col-md-6 col-sm-12">
+                <div className="card h-100 border-light">
+                  <div className="card-body py-3">
+                    <h4 className="h6 mb-3">Image Details</h4>
+                    <div className="row g-2">
+                      {originalImageData?.width && originalImageData?.height && (
+                        <div className="col-12">
+                          <small className="text-muted d-block">Dimensions:</small>
+                          <span>{originalImageData.width} × {originalImageData.height} px</span>
+                        </div>
+                      )}
+                      {processedImageData?.format && (
+                        <div className="col-12">
+                          <small className="text-muted d-block">Format:</small>
+                          <span>{processedImageData.format.toUpperCase()}</span>
+                        </div>
+                      )}
+                      {processedImageData?.quality && (
+                        <div className="col-12">
+                          <small className="text-muted d-block">Quality:</small>
+                          <span>{processedImageData.quality}%</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              )}
-              {imageData?.quality && (
-                <div className="col-md-4 col-sm-12">
-                  <strong>Quality:</strong> {imageData.quality}%
-                </div>
-              )}
+              </div>
             </div>
           </div>
         </div>
